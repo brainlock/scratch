@@ -17,17 +17,19 @@ data State =
 
 type S = ([Exp], State, String)
 
+tryParseInt :: [Exp] -> String -> (Int -> State) -> S
+tryParseInt p str constr = case reads str of
+    [(n, rest)] -> (p, constr n, rest)
+    [] -> (p, Init, str)
+    _ -> error "unexpected state during tryParseInt"
+
 parseStep :: S -> S
 parseStep (p, s, "") = (p, s, "")
 parseStep (p, Init, 'd':'o':'(':')':rest) = (p ++ [Do], Init, rest)
 parseStep (p, Init, 'd':'o':'n':'\'':'t':'(':')':rest) = (p ++ [Dont], Init, rest)
 parseStep (p, Init, 'm':'u':'l':'(':rest) = (p, CtMul, rest)
-parseStep (p, CtMul, s) = case reads s of
-    [(n, rest)] -> (p, CtMul1 n, rest)
-    _ -> (p, Init, s)
-parseStep (p, CtMul1 arg1, ',':s) = case reads s of
-    [(n, rest)] -> (p, CtMul2 arg1 n, rest)
-    _ -> (p, Init, s)
+parseStep (p, CtMul, s) = tryParseInt p s CtMul1
+parseStep (p, CtMul1 arg1, ',':s) = tryParseInt p s (CtMul2 arg1)
 parseStep (p, CtMul2 arg1 arg2, ')':s) = (p ++ [Mul arg1 arg2], Init, s)
 parseStep (p, _, _:rest) = (p, Init, rest)
 
