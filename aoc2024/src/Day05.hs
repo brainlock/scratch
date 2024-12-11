@@ -12,6 +12,7 @@ import Data.Foldable (Foldable(foldl'))
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Functor ((<&>))
+import Data.List (sortBy)
 
 testInput :: String
 testInput = [r|47|53
@@ -81,11 +82,28 @@ isCorrectOrder input pages = foldl' f (True, S.empty) pages & fst
         verifyPage page seen = all (`S.member` seen) (depsOfPage page)
         depsOfPage page = Data.Maybe.fromMaybe S.empty $ M.lookup page deps
 
+middle :: [a] -> a
+middle xs = xs !! (length xs `div` 2)
+
 solve1 :: Input -> Int
 solve1 input = sum $ map middle correctJobs
     where
         correctJobs = filter (isCorrectOrder input) (printJobs input)
-        middle xs = xs !! (length xs `div` 2)
+
+solve2 :: Input -> Int
+solve2 input = sum $ map middle fixedJobs
+    where
+        fixedJobs = map (sortPages input) incorrectJobs
+        incorrectJobs = filter (not . isCorrectOrder input) (printJobs input)
+
+sortPages :: Input -> PrintJob -> PrintJob
+sortPages input = sortBy comp
+    where
+        comp a b
+          | a `isDepOf` b = LT
+          | b `isDepOf` a = GT
+          | otherwise = EQ
+        isDepOf p1 p2 = p1 `S.member` Data.Maybe.fromMaybe S.empty (M.lookup p2 (dependencies input))
 
 test :: String -> Bool -> IO ()
 test name f = do
@@ -104,3 +122,6 @@ main = do
     putStrLn $ "test input 1: " ++ show (solve1 t)
     input <- readFile "inputs/day05" <&> parse
     putStrLn $ "solution 1: " ++ show (solve1 input)
+
+    putStrLn $ "test input 2: " ++ show (solve2 t)
+    putStrLn $ "solution 2: " ++ show (solve2 input)
