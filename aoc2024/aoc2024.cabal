@@ -56,3 +56,12 @@ executable day06
                     , raw-strings-qq
                     , containers
                     , array
+
+executable day07
+    import:           shared
+    main-is:          Day07.hs
+    build-depends:    base
+                    , raw-strings-qq
+                    , containers
+                    , array
+                    , split
