@@ -26,13 +26,11 @@ data Equation = Equation {
 
 type Input = [Equation]
 
-data Op = Add | Mul deriving (Show)
-applyOp :: Num a => Op -> a -> a -> a
+data Op = Add | Mul | Concat deriving (Show)
+applyOp :: (Num a, Read a, Show a) => Op -> a -> a -> a
 applyOp Add = (+)
 applyOp Mul = (*)
-
-allOps :: [Op]
-allOps = [Add, Mul]
+applyOp Concat = \a b -> read $ show a ++ show b
 
 -- >>> parse "123: 2 3 4 4"
 -- [Equation {elems = [2,3,4,4], result = 123}]
@@ -56,8 +54,8 @@ data Result = Possible [Op] | Impossible deriving (Show)
 
 -- >>> solveEq (Equation { result=10, elems=[2, 3, 4] })
 -- Possible [Mul,Add]
-solveEq :: Equation -> Result
-solveEq eq = case solveEq' eq (opsCombinations allOps $ length (elems eq) - 1) Nothing of
+solveEq :: [Op] -> Equation -> Result
+solveEq possibleOps eq = case solveEq' eq (opsCombinations possibleOps $ length (elems eq) - 1) Nothing of
     Just x -> x
     Nothing -> error "invalid, should always get to a result"
 
@@ -70,7 +68,7 @@ solveEq' eq (ops:otherCombinations) res = case calculate (elems eq) ops `compare
 
 -- >>> calculate [2, 3, 4] [Mul, Add]
 -- 10
-calculate :: Num a => [a] -> [Op] -> a
+calculate :: (Num a, Read a, Show a) => [a] -> [Op] -> a
 calculate [] _ = error "invalid state, empty eq"
 calculate [a] _ = a
 calculate (_:_:_) [] = error "invalid state, not enough ops (wrong length?)"
@@ -86,13 +84,19 @@ opsCombinations ops n = last $ take (n+1) $ iterate f [[]]
     where
         f = liftM2 (:) ops
 
-solve1 :: Input -> Int
-solve1 eqs = filter (isPossible . solveEq) eqs
+solve :: [Op] -> Input -> Int
+solve possibleOps eqs = filter (isPossible . solveEq possibleOps) eqs
     & map result
     & sum
     where
     isPossible (Possible _) = True
     isPossible _ = False
+
+solve1 :: Input -> Int
+solve1 = solve [Add, Mul]
+
+solve2 :: Input -> Int
+solve2 = solve [Add, Mul, Concat]
 
 main :: IO ()
 main = do
@@ -101,3 +105,6 @@ main = do
 
     input <- readFile "inputs/day07" <&> parse
     putStrLn $ "solution1: " ++ show (solve1 input)
+
+    putStrLn $ "test2: " ++ show (solve2 t)
+    putStrLn $ "solution2: " ++ show (solve2 input)
