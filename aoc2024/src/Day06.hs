@@ -29,12 +29,16 @@ testInput = [r|....#.....
 type Input = (LabMap, Guard)
 
 data Cell = Free | Obstructed
-    deriving Show
+    deriving (Eq, Show)
 
 type Idx = (Int, Int)
 type LabMap = A.Array Idx Cell
 
+data Completion = Loop | Out
+    deriving (Show, Eq)
+
 data Direction = DirUp | DirDown | DirLeft | DirRight
+    deriving (Eq, Ord)
 
 instance Show Direction
     where
@@ -52,7 +56,7 @@ instance Read Direction where
   readsPrec _ _ = []
 
 data Guard = Guard Idx Direction
-    deriving Show
+    deriving (Show, Eq, Ord)
 
 guardPosition :: Guard -> Idx
 guardPosition (Guard p _) = p
@@ -115,8 +119,36 @@ run (labMap, guard) =
             Just s -> guard:run (labMap, s)
             Nothing -> [guard]
 
+runToCompletion :: LabMap -> S.Set Guard -> Guard -> Completion
+runToCompletion lab seen (Guard pos direction)
+    | inRange lab nextCell =
+        let next = evalNextCell nextCell in
+            if next `S.member` seen then
+                Loop
+            else
+                runToCompletion lab (S.insert (Guard pos direction) seen) next
+    | otherwise = Out
+    where
+        nextCell = idxAdd pos (move direction)
+        evalNextCell c = case lab A.! c of
+            Free -> Guard nextCell direction
+            Obstructed -> Guard pos $ turn direction
+
+
 solve1 :: Input -> Int
 solve1 input = run input & map guardPosition & S.fromList & length
+
+solve2 :: Input -> Int
+solve2 (lab, guard) =
+    [(c, replaceCell lab c) | c <- emptyCells]
+    & map (\(c, lab') -> (c, runToCompletion lab' S.empty guard))
+    & filter (\(_, end) -> end == Loop)
+    & map fst
+    & countUnique
+    where
+        emptyCells = A.assocs lab & filter (\(_, c) -> c == Free) & map fst
+        replaceCell l c = l A.// [(c, Obstructed)]
+        countUnique = length . S.fromList
 
 main :: IO ()
 main = do
@@ -126,3 +158,5 @@ main = do
     input <- readFile "inputs/day06" <&> parse
     putStrLn $ "solution 1: " ++ show (solve1 input)
 
+    putStrLn $ "test input 2: " ++ show (solve2 t)
+    putStrLn $ "solution 2: " ++ show (solve2 input)
