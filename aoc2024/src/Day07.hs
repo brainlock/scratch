@@ -64,17 +64,21 @@ solveEq possibleOps eq = case solveEq' eq (opsCombinations possibleOps $ length 
 solveEq' :: Equation -> [[Op]] -> Maybe Result -> Maybe Result
 solveEq' _ _ (Just x) = Just x
 solveEq' _ [] _ = Just Impossible
-solveEq' eq (ops:otherCombinations) res = case calculate (elems eq) ops `compare` result eq of
+solveEq' eq (ops:otherCombinations) res = case calcShortcut (result eq) (elems eq) ops `compare` result eq of
     EQ -> Just $ Possible ops
     _ -> solveEq' eq otherCombinations res
 
--- >>> calculate [2, 3, 4] [Mul, Add]
+-- >>> calcShortcut 10 [2, 3, 4] [Mul, Add]
 -- 10
-calculate :: (Num a, Read a, Show a, Integral a) => [a] -> [Op] -> a
-calculate [] _ = error "invalid state, empty eq"
-calculate [a] _ = a
-calculate (_:_:_) [] = error "invalid state, not enough ops (wrong length?)"
-calculate (a:b:rest) (op:ops) = calculate (applyOp op a b:rest) ops
+calcShortcut :: (Num a, Read a, Show a, Integral a, Ord a) => a -> [a] -> [Op] -> a
+calcShortcut _ [] _ = error "invalid state, empty eq"
+calcShortcut _ [a] _ = a
+calcShortcut _ (_:_:_) [] = error "invalid state, not enough ops (wrong length?)"
+calcShortcut expectedResult (a:b:rest) (op:ops) =
+    if res >= expectedResult then res
+    else calcShortcut expectedResult (res:rest) ops
+    where
+        res = applyOp op a b
 
 -- looks like I could have just written `sequence (replicate n ops)`…
 -- >>> sequence (replicate 3 [Add, Mul])
