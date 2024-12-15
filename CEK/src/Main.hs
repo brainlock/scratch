@@ -8,11 +8,15 @@ type Var = String
 data Lambda = Var :-> Exp
     deriving (Show, Eq)
 
+data LetBinding = Var := Exp
+    deriving (Show, Eq)
+
 data Exp =
     Const Int
     | Ref Var
     | Lam Lambda
     | Exp :@ Exp
+    | Let (LetBinding, Exp)
     deriving (Show, Eq)
 
 data Value =
@@ -58,6 +62,8 @@ step (Const k, _, CtFn (x :-> b, fnEnv, fnCt)) = (b, M.insert x (Vconst k) fnEnv
 
 step (Lam f, env, CtFn (x :-> b, fnEnv, fnCt)) = (b, M.insert x (Vclosure f env) fnEnv, fnCt)
 
+step (Let (x := val, b), env, cont) = (Lam (x :-> b) :@ val, env, cont)
+
 step s = error $ "invalid state: " ++ show s
 
 
@@ -86,3 +92,5 @@ main = do
     test "f as arg" (Const 42) $ Lam ("f" :-> Lam ("x" :-> (Ref "f" :@ Ref "x"))) :@ Lam ("x" :-> Ref "x") :@ Const 42
     test "scope 1" (Const 43) $ Lam ("x" :-> Lam ("y" :-> Ref "y")) :@ Const 42 :@ Const 43
     test "scope 2" (Const 42) $ Lam ("x" :-> Lam ("y" :-> Ref "x")) :@ Const 42 :@ Const 43
+    test "let" (Const 42) $ Let ("x" := Const 42, Lam ("y" :-> Ref "x") :@ Const 43)
+    test "let f" (Const 42) $ Let ("f" := Lam ("x" :-> Ref "x"), Ref "f" :@ Const 42)
