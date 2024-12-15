@@ -1,0 +1,21 @@
+cabal-version:   3.0
+name:            cek
+version:         0.1.0.0
+license:         NONE
+author:          Alberto Piai
+maintainer:      alberto.piai@gmail.com
+build-type:      Simple
+
+common warnings
+    ghc-options: -Wall
+
+executable cek
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:    base
+                    , raw-strings-qq
+                    , containers
+                    , array
+                    , split
+    hs-source-dirs:   src
+    default-language: Haskell2010
