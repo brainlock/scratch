@@ -27,10 +27,12 @@ data Equation = Equation {
 type Input = [Equation]
 
 data Op = Add | Mul | Concat deriving (Show)
-applyOp :: (Num a, Read a, Show a) => Op -> a -> a -> a
+applyOp :: (Num a, Read a, Show a, Integral a) => Op -> a -> a -> a
 applyOp Add = (+)
 applyOp Mul = (*)
-applyOp Concat = \a b -> read $ show a ++ show b
+applyOp Concat = \a b -> a * f b + b
+    where
+        f x = if div x 10 == 0 then 10 else 10 * f (div x 10)
 
 -- >>> parse "123: 2 3 4 4"
 -- [Equation {elems = [2,3,4,4], result = 123}]
@@ -68,7 +70,7 @@ solveEq' eq (ops:otherCombinations) res = case calculate (elems eq) ops `compare
 
 -- >>> calculate [2, 3, 4] [Mul, Add]
 -- 10
-calculate :: (Num a, Read a, Show a) => [a] -> [Op] -> a
+calculate :: (Num a, Read a, Show a, Integral a) => [a] -> [Op] -> a
 calculate [] _ = error "invalid state, empty eq"
 calculate [a] _ = a
 calculate (_:_:_) [] = error "invalid state, not enough ops (wrong length?)"
