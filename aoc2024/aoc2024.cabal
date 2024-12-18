@@ -65,3 +65,11 @@ executable day07
                     , containers
                     , array
                     , split
+
+executable day09
+    import:           shared
+    main-is:          Day09.hs
+    build-depends:    base
+                    , containers
+                    , array
+                    , split
